@@ -1,1 +1,2 @@
-.wezzenv
+.wezzenv/*
+__pycache__/*

@@ -3,9 +3,10 @@
 -- ::::::::::::::::::::::
 -- 
 -- Author:      @espadonne (mfw)
--- Description: this is a sample wezterm config (copy of my current)
---              for use with my lil widget, wezztershier.
---              The tool looks at a WezTerm config with decorations
+-- Description: just my wezterm config.
+--              but it's decorated for use with
+--              my lil PyQt6 widget, wezztershier.
+--              That tool looks at a WezTerm config with decorations
 --              of my pleasing, and allows live editing of the terminal
 --              emulator's visual effects via PyQT6 gui.
 -- 
@@ -28,25 +29,25 @@ end
 -- ::::: :::::::::::::::::::::: :::::
 
 -- <<TUNER-START>>
--- @ui: slider(min=10, max=42, step=1)
-config.font_size = 30
--- @ui: slider(min=0.05, max=1.0, step=0.01)
-config.window_background_opacity = 0.3
--- @ui: select(options="Gruvbox Dark, Gruvbox Light, Catppuccin Mocha")
-config.color_scheme = "Gruvbox Dark"
--- @ui: slider(min=1, max=100, step=1)
-config.macos_window_background_blur = 32
+-- @ui: slider(min=10, max=42, step=1) type=int
+config.font_size = 18
+-- @ui: slider(min=0.05, max=1.0, step=0.01) type=float
+config.window_background_opacity = 0.46
+-- @ui: select(options="Gruvbox Dark, Gruvbox Light, Catppuccin Mocha") type=string
+config.color_scheme = "Catppuccin Mocha"
+-- @ui: slider(min=1, max=100, step=1) type=int
+config.macos_window_background_blur = 17
 -- <<TUNER-END>>
 
 
 -- :::
--- :::: TO ADD HANDLING FOR ::::
--- ::::: ::::::::::::::::::: :::::
+-- :::: TO ADD HANDLING FOR :: later ::::
+-- ::::: :::::::::::::::::::::::::::: :::::
 -- 
 config.debug_key_events = false
 config.enable_scroll_bar = true
 config.colors = config.colors or {}
-config.colors.background = "#33333"
+config.colors.background = "#333333"
 config.window_decorations = "RESIZE"
 config.pane_focus_follows_mouse = true
 config.native_macos_fullscreen_mode = true
@@ -67,8 +68,8 @@ end)
 
 
 -- :::
--- :::: KEYBINDS my onetrue ::::
--- ::::: ::::::::::::::::::: :::::
+-- :::: KEYBINDS :: my onetrue ::::
+-- ::::: :::::::::::::::::::::: :::::
 -- 
 config.keys = {
   {
@@ -102,9 +103,11 @@ config.keys = {
 -- :::
 -- :::: TAB BAR SETTINGS ::::
 -- ::::: :::::::::::::::: :::::
--- 
+--
+-- NOTE:  really just colors rn;
+--        the live timestamp is scripted.
 config.colors.tab_bar = {
-  background = "#333333", -- ::: Set to window background for a 'blended' look
+  background = "#333333",
   active_tab = {
     bg_color = "#333333",
     fg_color = "#FFFFFF",
