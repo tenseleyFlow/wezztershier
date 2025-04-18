@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wezztershier"
+version = "0.1.0"
+description = "Static-decorator-built GUI tuner for WezTerm visuals"
+requires-python = ">=3.10"
+dependencies = ["PyQt6"]
+
+[project.scripts]
+wezztershier = "wezztershier:main"
