@@ -58,10 +58,10 @@
 
 import os
 import sys
-import wezzbakmchne
+from . import wezzbakmchne
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFontMetrics
-from wexler import parse_annotations
+from .wexler import parse_annotations
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QSlider, QLabel, QPushButton,
     QTextEdit, QFileDialog, QSpinBox, QDoubleSpinBox, QSizePolicy, QComboBox,
@@ -563,8 +563,12 @@ class Wezztershier(QWidget):
         event.accept()
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     window = Wezztershier()
     window.show()
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
