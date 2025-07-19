@@ -1,12 +1,17 @@
-"""
-module entry‑point so one can run
+# :::
+# :::: MODULE ENTRY POINT ::::
+# ::::::::::::::::::::::::::::::
+#
+# Allows running as:
+#     python -m wezztershier
+#
+# With exactly the same behavior as the 
+# `wezztershier` console command
+#
+# Author: @espadonne (mfw)
+# ::::
 
-    python -m wezztershier
+from .cli import main
 
-and get exactly the same behaviour as the `wezztershier` console command.
-"""
-
-from .gui import main
-
-if __name__ == "__main__":   # pragma: no cover
+if __name__ == "__main__":
     main()

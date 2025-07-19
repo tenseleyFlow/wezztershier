@@ -20,7 +20,7 @@
 # :::: TODOs ::::
 # :::::::::::::::::
 #
-#	  TODOne: parsing has overlapping functionality
+#	  TODO: parsing has overlapping functionality
 #   TODO: better error handling for the tuning block grab
 #
 # Author: @espadonne (mfw)
