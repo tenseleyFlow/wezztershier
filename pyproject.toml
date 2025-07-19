@@ -1,13 +1,55 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=69", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "wezztershier"
-version = "0.1.0"
+version = "0.2.0"
 description = "Static-decorator-built GUI tuner for WezTerm visuals"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["PyQt6"]
+license = {text = "MIT"}
+authors = [
+    {name = "espadonne (mfw)", email = "espadonne@outlook.com"},
+]
+keywords = ["wezterm", "configuration", "gui", "terminal"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Terminals :: Terminal Emulators/X Terminals",
+]
+
+dependencies = [
+    "PyQt6>=6.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-qt>=4.2",
+    "mypy>=1.5",
+    "ruff>=0.1.0",
+]
 
 [project.scripts]
-wezztershier = "wezztershier:main"
+wezztershier = "wezztershier.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
