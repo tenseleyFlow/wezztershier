@@ -141,15 +141,24 @@ class Select(BaseWezzWidget):
                 self._combo.setCurrentIndex(0)
     
     def get_config_string(self) -> str:
-        """Get config file representation"""
-        value = self.get_value()
-        # Always quote string values for select
-        return f'{self.key} = "{value}"'
-    
-    def validate(self) -> bool:
-        """Validate current selection"""
-        # Always valid since we can only select from available options
-        return True
+            """Get config file representation"""
+            value = self.get_value()
+            
+            # :::
+            # :::: NOTE: @espadonne (mfw)
+            # :::::     Check if this is a font configuration
+            # :::::     by looking at the key name
+            # ::::
+            if 'font' in self.key.lower() and not 'size' in self.key.lower():
+                # This is likely a font selector
+                return f'{self.key} = wezterm.font("{value}")'
+            
+            # Check if this is a boolean value
+            if value.lower() in ('true', 'false'):
+                return f'{self.key} = {value.lower()}'
+            
+            # Regular string values get quotes
+            return f'{self.key} = "{value}"'
 
 
 # :::
