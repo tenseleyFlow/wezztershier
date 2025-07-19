@@ -14,11 +14,16 @@
 # <annotation>      ::= <ui_type> [ "(" <param_list> ")" ] { <trailing_param> }
 # <ui_type>         ::= <identifier>
 # <param_list>      ::= <param> { "," <param> }
-# <trailing_param>  ::= <identifier> "=" (<number> | <string> | <identifier>) [ "," ]
-# <param>           ::= <identifier> "=" (<number> | <string> | <identifier>)
+# <trailing_param>  ::= <identifier> "=" <value> [ "," ]
+# <param>           ::= <identifier> "=" <value>
+# <value>           ::= <number> | <string> | <identifier> | <boolean> | <list> | <dict>
+# <list>            ::= "[" [ <value> { "," <value> } ] "]"
+# <dict>            ::= "{" [ <pair> { "," <pair> } ] "}"
+# <pair>            ::= <identifier> ":" <value>
+# <boolean>         ::= "true" | "false"
 # <identifier>      ::= letter { letter | digit | "_" }
 # <number>          ::= digit { digit } [ "." digit { digit } ]
-# <string>          ::= "\"" { any character except "\"" } "\""
+# <string>          ::= "\"" { any character except unescaped "\"" } "\""
 #
 # :::
 # :::: EXAMPLE DECORATIONS ::::
@@ -27,15 +32,28 @@
 #   -- @ui: slider(min=0, max=1, step=0.01) type=float
 #   -- @ui: select(options="Dark, Light, Auto") type=string  
 #   -- @ui: numerical(min=8, max=72) type=int
+#   -- @ui: color_picker(format="hex", alpha=true) type=color
+#   -- @ui: range_slider(min=0, max=50, linked=true) type=padding
+#   -- @ui: font_picker(monospace_only=true, size_range=[8, 72]) type=font
+#   -- @ui: key_binding(modifiers=["cmd", "shift"]) type=keybind
+#   -- @ui: multi_select(options=["resize", "title", "close"], defaults={resize: true}) type=flags
 #
 # :::
 # :::: TODOs ::::
 # :::::::::::::::::
 #
-#   TODO: support for nested parameter structures
-#   TODO: better error messages with line numbers
-#   TODO: support for escape sequences in strings
+#   TODO: support for nested dicts/lists (currently single level)
+#   TODO: better error messages with line numbers  
 #   TODO: a REPL for testing decorations? parse-REPL? 
+#
+# :::
+# :::: DONE ::::
+# ::::::::::::::::
+#
+#     - Support for escape sequences in strings
+#     - List and dict parsing
+#     - Boolean literals
+#     - Complex parameter structures
 #
 # Author: @espadonne (mfw)
 # ::::
@@ -67,9 +85,15 @@ class TokenType(Enum):
     EQUAL = auto()
     LPAREN = auto()
     RPAREN = auto()
+    LBRACKET = auto()  # For list support
+    RBRACKET = auto()
+    LBRACE = auto()    # For dict support
+    RBRACE = auto()
+    COLON = auto()     # For dict key:value
     STRING = auto()
     NUMBER = auto()
     IDENT = auto()
+    BOOLEAN = auto()   # true/false support
     SKIP = auto()
     EOF = auto()
 
@@ -105,11 +129,17 @@ class ConfigEntry(TypedDict):
 TOKEN_PATTERNS = [
     (TokenType.COMMA,    r"^,"),
     (TokenType.EQUAL,    r"^="),
+    (TokenType.COLON,    r"^:"),
     (TokenType.LPAREN,   r"^\("),
     (TokenType.RPAREN,   r"^\)"),
+    (TokenType.LBRACKET, r"^\["),
+    (TokenType.RBRACKET, r"^\]"),
+    (TokenType.LBRACE,   r"^\{"),
+    (TokenType.RBRACE,   r"^\}"),
     (TokenType.SKIP,     r"^[ \t]+"),
-    (TokenType.STRING,   r'^"(.*?)"'),  # Non-greedy for parse-imony
+    (TokenType.STRING,   r'^"((?:[^"\\]|\\.)*)"'),  # Support escape sequences!
     (TokenType.NUMBER,   r"^\d+\.?\d*"),
+    (TokenType.BOOLEAN,  r"^(true|false)\b"),  # Boolean literals
     (TokenType.IDENT,    r"^[A-Za-z_][A-Za-z0-9_]*"),
 ]
 
@@ -153,6 +183,11 @@ def tokenize_annotation(annotation_text: str) -> List[Token]:
                     if token_type == TokenType.STRING and regex_match.lastindex:
                         # Extract string content without quotes
                         token_val = regex_match.group(1)
+                        # Process escape sequences
+                        token_val = token_val.replace('\\"', '"').replace('\\\\', '\\')
+                    elif token_type == TokenType.BOOLEAN:
+                        # Keep the boolean as string for now
+                        token_val = regex_match.group(0)
                     else:
                         token_val = regex_match.group(0)
                     
@@ -253,16 +288,31 @@ def parse_annotations(config_content: str) -> List[ConfigEntry]:
             while i < len(lines) and not lines[i].strip():
                 i += 1
             
-            # Next non-empty line should be the config assignment
+            # :::
+            # :::: NOTE: @espadonne (mfw)
+            # :::::     Skip table initialization lines
+            # :::::     and find the actual value assignment
+            # ::::
+            # Skip table initialization lines like "config.colors = config.colors or {}"
+            while i < len(lines):
+                config_line = lines[i].strip()
+                # Check if this is a table init line
+                if re.match(r'^config\.[\w_\.]+ = config\.[\w_\.]+ or \{\}$', config_line):
+                    i += 1
+                    continue
+                else:
+                    break
+            
+            # Next non-empty, non-init line should be the config assignment
             if i < len(lines):
                 config_line = lines[i].strip()
                 
                 # :::
                 # :::: NOTE: @espadonne (mfw)
-                # :::::     regex for config.key = value pattern
-                # :::::     this is where we extract the parse-els
+                # :::::     Enhanced regex for nested table paths
+                # :::::     Now handles config.colors.tab_bar.background etc
                 # ::::
-                match = re.match(r'^(config\.[\w_]+)\s*=\s*(.+)$', config_line)
+                match = re.match(r'^(config(?:\.[\w_]+)+)\s*=\s*(.+)$', config_line)
                 
                 if match:
                     key = match.group(1)
@@ -350,8 +400,9 @@ class Wexler:
     
     # :::
     # parses a single parameter of the form:
-    #     IDENT "=" (NUMBER | STRING | IDENT)
+    #     IDENT "=" <value>
     #
+    # where <value> can be NUMBER, STRING, IDENT, BOOLEAN, list, or dict
     # returns tuple (key, value) - the parse-fect pair!
     # ::::
     def parse_single_param(self) -> Tuple[str, Any]:
@@ -360,29 +411,107 @@ class Wexler:
         
         self.consume(TokenType.EQUAL)
         
-        # Now for the value - could be anything! Parse-ibly anything!
+        # Parse the value - could be anything!
+        value = self.parse_value()
+        
+        logger.debug(f"Parsed param: {key}={value}")
+        return key, value
+    
+    # :::
+    # parse any value type.
+    # the swiss army knife of parsing!
+    # ::::
+    def parse_value(self) -> Any:
+        """Parse a value which can be number, string, bool, list, or dict"""
         token = self.current()
         if not token:
-            raise ParseError("Expected value after '='", self.pos)
+            raise ParseError("Expected value", self.pos)
         
         if token.typ == TokenType.NUMBER:
             value_token = self.consume(TokenType.NUMBER)
-            # Parse as float - we're not parse-ial to integers only
-            value = float(value_token.val)
+            return float(value_token.val)
         elif token.typ == TokenType.STRING:
             value_token = self.consume(TokenType.STRING)
-            value = value_token.val
+            return value_token.val
+        elif token.typ == TokenType.BOOLEAN:
+            value_token = self.consume(TokenType.BOOLEAN)
+            return value_token.val.lower() == 'true'
         elif token.typ == TokenType.IDENT:
             value_token = self.consume(TokenType.IDENT)
-            value = value_token.val
+            return value_token.val
+        elif token.typ == TokenType.LBRACKET:
+            return self.parse_list()
+        elif token.typ == TokenType.LBRACE:
+            return self.parse_dict()
         else:
             raise ParseError(
                 f"Unexpected token type for value: {token.typ.name}",
                 token.pos
             )
+    
+    # :::
+    # parse a list: [value, value, ...]
+    # lists are the parse-ty mix of values!
+    # ::::
+    def parse_list(self) -> List[Any]:
+        """Parse a list of values"""
+        self.consume(TokenType.LBRACKET)
+        values = []
         
-        logger.debug(f"Parsed param: {key}={value}")
-        return key, value
+        # Empty list?
+        if self.peek(TokenType.RBRACKET):
+            self.consume(TokenType.RBRACKET)
+            return values
+        
+        # Parse first value
+        values.append(self.parse_value())
+        
+        # Parse remaining values
+        while self.peek(TokenType.COMMA):
+            self.consume(TokenType.COMMA)
+            
+            # Allow trailing comma
+            if self.peek(TokenType.RBRACKET):
+                break
+                
+            values.append(self.parse_value())
+        
+        self.consume(TokenType.RBRACKET)
+        return values
+    
+    # :::
+    # parse a dict: {key: value, key: value, ...}
+    # dictionaries: where keys and values parse-ty together!
+    # ::::
+    def parse_dict(self) -> Dict[str, Any]:
+        """Parse a dictionary of key:value pairs"""
+        self.consume(TokenType.LBRACE)
+        result = {}
+        
+        # Empty dict?
+        if self.peek(TokenType.RBRACE):
+            self.consume(TokenType.RBRACE)
+            return result
+        
+        # Parse first pair
+        key = self.consume(TokenType.IDENT).val
+        self.consume(TokenType.COLON)
+        result[key] = self.parse_value()
+        
+        # Parse remaining pairs
+        while self.peek(TokenType.COMMA):
+            self.consume(TokenType.COMMA)
+            
+            # Allow trailing comma
+            if self.peek(TokenType.RBRACE):
+                break
+            
+            key = self.consume(TokenType.IDENT).val
+            self.consume(TokenType.COLON)
+            result[key] = self.parse_value()
+        
+        self.consume(TokenType.RBRACE)
+        return result
     
     # :::
     # parses a comma-separated list of parameters.
