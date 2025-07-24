@@ -113,8 +113,7 @@ def check_widgets() -> None:
         'theme_select': 'Theme Selector',
         'color_picker': 'Color Picker',
         'color_scheme': 'Color Scheme Picker',
-        'font': 'Font Input',
-        'font_picker': 'Font Picker',
+        'table_path': 'Table Path Handler',
     }
     
     print("Widget Registration:")

@@ -52,8 +52,6 @@ from .selectors import Select, ThemeSelector
 # ::::
 from .color import ColorPicker, ColorSchemePicker
 
-# Font widgets
-from .font import FontInput, FontPicker, FontConfig
 
 # Table/special widgets (if implemented)
 try:
@@ -80,7 +78,7 @@ def _log_registration_status():
     expected_types = [
         'slider', 'int_slider', 'numerical', 'text',
         'select', 'theme_select', 'color_picker', 
-        'color_scheme', 'font', 'font_picker', 'font_config'
+        'color_scheme'
     ]
     
     missing = [t for t in expected_types if t not in registered]
@@ -131,11 +129,6 @@ __all__ = [
     # ::::
     "ColorPicker",
     "ColorSchemePicker",
-    
-    # Font widgets
-    "FontInput",
-    "FontPicker",
-    "FontConfig",
 ]
 
 # Add optional widgets if available
