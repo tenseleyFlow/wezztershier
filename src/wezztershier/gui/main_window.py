@@ -178,7 +178,16 @@ class Wezztershier(QMainWindow):
     def _init_ui(self) -> None:
         """Initialize the UI with dynamic layout"""
         self.setWindowTitle("wezztershier")
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint)
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Added FramelessWindowHint to prevent resizing
+        # :::::     No more layout chaos from window stretching!
+        # ::::
+        self.setWindowFlags(
+            Qt.WindowType.Dialog | 
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.MSWindowsFixedSizeDialogHint
+        )
         
         # Calculate layout parameters
         num_columns, window_width, window_height = self._calculate_layout_params()
@@ -217,10 +226,11 @@ class Wezztershier(QMainWindow):
         
         main_layout.addWidget(splitter)
         
-        # Set window size
+        # Set window size and lock it
         self.resize(window_width, window_height)
+        self.setFixedSize(window_width, window_height)  # Lock the window size!
         
-        logger.info(f"Window layout: {num_columns} columns, {window_width}x{window_height}")
+        logger.info(f"Window layout: {num_columns} columns, {window_width}x{window_height} (locked)")
     
     def _add_header(self, layout: QVBoxLayout) -> None:
         """Add header section"""
