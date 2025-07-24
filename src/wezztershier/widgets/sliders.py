@@ -70,30 +70,42 @@ class FloatSlider(NumericWezzWidget):
         self.set_value(self.initial_numeric)
     
     def _setup_ui(self) -> None:
-        """Setup the custom slider UI"""
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Create the actual slider widget
-        self._slider_widget = _FloatSliderWidget(
-            min_val=self.min_val,
-            max_val=self.max_val,
-            step=self.step,
-            precision=self.precision,
-            is_int=not self.is_float
-        )
-        
-        # Value label - because users like to see numbers
-        self._value_label = QLabel()
-        self._value_label.setMinimumWidth(60)
-        self._value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        self._update_label()
-        
-        layout.addWidget(self._slider_widget)
-        layout.addWidget(self._value_label)
-        
-        # Connect signals
-        self._slider_widget.value_changed.connect(self._on_value_changed)
+            """Setup the custom slider UI"""
+            layout = QHBoxLayout(self)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(5)
+            
+            # Create the actual slider widget
+            self._slider_widget = _FloatSliderWidget(
+                min_val=self.min_val,
+                max_val=self.max_val,
+                step=self.step,
+                precision=self.precision,
+                is_int=not self.is_float
+            )
+            
+            # :::
+            # :::: NOTE: @espadonne (mfw)
+            # :::::     Simple value label - no background, just the number
+            # :::::     Right-aligned to give slider more room
+            # ::::
+            self._value_label = QLabel()
+            self._value_label.setMinimumWidth(40)
+            self._value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self._value_label.setStyleSheet("""
+                QLabel {
+                    color: #d4d4d4;
+                    font-family: monospace;
+                    font-size: 12px;
+                }
+            """)
+            self._update_label()
+            
+            layout.addWidget(self._slider_widget, 1)  # Slider gets stretch
+            layout.addWidget(self._value_label, 0)   # Label stays fixed
+            
+            # Connect signals
+            self._slider_widget.value_changed.connect(self._on_value_changed)
     
     def _on_value_changed(self, value: float) -> None:
         """Handle internal value changes"""

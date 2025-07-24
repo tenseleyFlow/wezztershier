@@ -1,10 +1,10 @@
 # :::
-# :::: MAIN WINDOW :: columns that actually column ::::
-# ::::: ::::::::::::::::::::::::::::::::::::::::::::: :::::
+# :::: MAIN WINDOW :: labels above, beauty below ::::
+# ::::: :::::::::::::::::::::::::::::::::::::::: :::::
 #
-# Enhanced main window with true multi-column widget layout
-# that puts widgets in actual side-by-side columns.
-# No more grid confusion or widgets disappearing!
+# Enhanced main window with labels above inputs.
+# Sliders centered, everything else right-aligned.
+# Because vertical rhythm > horizontal chaos!
 #
 # Author: @espadonne (mfw)
 # ::::
@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 #
 # Adjust these to taste. Like seasoning, but for GUIs.
 # ::::
-WIDGET_COLUMN_WIDTH = 380      # Width per widget column
-WINDOW_BASE_WIDTH = 1200       # Minimum window width
+WIDGET_COLUMN_WIDTH = 280      # Width per widget column
+WINDOW_BASE_WIDTH = 1000       # Minimum window width
 WINDOW_MAX_WIDTH = 2400        # Maximum for even high-res monitors
 PREVIEW_MIN_WIDTH = 500        # Preview pane minimum width
 MAX_WIDGETS_PER_COLUMN = 10    # Before creating new column
@@ -45,15 +45,15 @@ MAX_WINDOW_HEIGHT = 1200       # Maximum height
 
 
 # :::
-# :::: WEZZTERSHIER :: the column choreographer ::::
-# ::::: ::::::::::::::::::::::::::::::::::::::: :::::
+# :::: WEZZTERSHIER :: the vertical virtuoso ::::
+# ::::: ::::::::::::::::::::::::::::::::::::: :::::
 #
-# Main window with true multi-column layout.
-# Widgets flow down columns, then to the next column.
-# Like a newspaper, but for terminal configs!
+# Main window with labels-above-inputs layout.
+# Clean, vertical, and properly aligned.
+# Like a well-organized closet, but for configs!
 # ::::
 class Wezztershier(QMainWindow):
-    """Main window for wezztershier with column-based layout"""
+    """Main window for wezztershier with vertical widget layout"""
     
     def __init__(
         self,
@@ -156,14 +156,19 @@ class Wezztershier(QMainWindow):
         else:
             columns = min(5, columns)  # Cap at 5 columns max
         
-        # Calculate window width
-        widget_area_width = columns * WIDGET_COLUMN_WIDTH
-        total_width = widget_area_width + PREVIEW_MIN_WIDTH + 100  # padding + splitter
-        total_width = max(WINDOW_BASE_WIDTH, min(total_width, WINDOW_MAX_WIDTH))
+        # Calculate exact width needed for columns
+        widget_area_width = columns * WIDGET_COLUMN_WIDTH + 40  # columns + padding
+        total_width = widget_area_width + PREVIEW_MIN_WIDTH + 50  # add preview + splitter
         
-        # Calculate window height based on widgets per column
+        # Don't exceed max but don't pad unnecessarily
+        total_width = min(total_width, WINDOW_MAX_WIDTH)
+        
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     More height per widget now that labels are above
+        # ::::
         widgets_per_col = math.ceil(widget_count / columns)
-        height = 200 + (widgets_per_col * 45)  # header + widget heights
+        height = 200 + (widgets_per_col * 80)  # More height for vertical layout
         height = max(MIN_WINDOW_HEIGHT, min(height, MAX_WINDOW_HEIGHT))
         
         logger.debug(f"Layout calc: {widget_count} widgets -> {columns} cols, {total_width}x{height}")
@@ -245,6 +250,7 @@ class Wezztershier(QMainWindow):
         """Create the widget area with proper columns"""
         container = QWidget()
         container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         
         if not self.dynamic_entries:
             no_config = QLabel("No configuration annotations found in wezterm.lua")
@@ -261,7 +267,7 @@ class Wezztershier(QMainWindow):
         # :::
         # :::: NOTE: @espadonne (mfw)
         # :::::     Create a scroll area for the columns
-        # :::::     in case we have many widgets
+        # :::::     but don't let it stretch vertically
         # ::::
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -284,7 +290,7 @@ class Wezztershier(QMainWindow):
             col_widget = QWidget()
             col_widget.setFixedWidth(WIDGET_COLUMN_WIDTH)
             col_layout = QVBoxLayout(col_widget)
-            col_layout.setSpacing(5)
+            col_layout.setSpacing(10)
             columns.append((col_widget, col_layout))
             columns_layout.addWidget(col_widget)
         
@@ -305,33 +311,10 @@ class Wezztershier(QMainWindow):
             
             _, col_layout = columns[col_idx]
             
-            # Create widget row in a frame for better visual separation
-            frame = QFrame()
-            frame.setFrameStyle(QFrame.Shape.Box)
-            frame.setStyleSheet("""
-                QFrame {
-                    border: 1px solid #333;
-                    border-radius: 4px;
-                    padding: 10px;
-                    margin: 2px;
-                    background-color: #2a2a2a;
-                }
-                QFrame:hover {
-                    border-color: #555;
-                    background-color: #2f2f2f;
-                }
-            """)
-            
-            frame_layout = QFormLayout(frame)
-            frame_layout.setContentsMargins(8, 8, 8, 8)
-            frame_layout.setSpacing(8)
-            frame_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            
-            widget = self._create_widget_row(entry, frame_layout)
-            if widget:
-                self.dynamic_widgets[entry['key']] = widget
-            
-            col_layout.addWidget(frame)
+            # Create widget block with label above
+            widget_block = self._create_widget_block(entry)
+            if widget_block:
+                col_layout.addWidget(widget_block)
         
         # Add stretch to each column to push widgets up
         for _, col_layout in columns:
@@ -344,15 +327,41 @@ class Wezztershier(QMainWindow):
         )
         
         scroll.setWidget(scroll_widget)
-        container_layout.addWidget(scroll)
+        
+        container_layout.addWidget(scroll, 0)  # Don't give it stretch
         
         # Add control buttons at bottom
         self._add_controls(container_layout)
         
         return container
     
-    def _create_widget_row(self, entry: ConfigEntry, layout: QFormLayout) -> Optional[QWidget]:
-        """Create a single widget row"""
+    def _create_widget_block(self, entry: ConfigEntry) -> Optional[QWidget]:
+        """Create a widget block with label above input"""
+        # Create container frame
+        frame = QFrame()
+        frame.setFrameStyle(QFrame.Shape.Box)
+        frame.setStyleSheet("""
+            QFrame {
+                border: 1px solid #333;
+                border-radius: 4px;
+                padding: 10px;
+                margin: 2px;
+                background-color: #2a2a2a;
+            }
+            QFrame:hover {
+                border-color: #555;
+                background-color: #2f2f2f;
+            }
+        """)
+        
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Vertical layout for label above widget
+        # ::::
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+        
         # Create label - prettier formatting
         key_parts = entry['key'].split('.')
         if len(key_parts) > 1:
@@ -362,52 +371,63 @@ class Wezztershier(QMainWindow):
             label_text = key_parts[0]
         
         label_text = label_text.replace('_', ' ').title()
-        label = QLabel(label_text + ":")
+        label = QLabel(label_text)
         label.setStyleSheet("""
             font-weight: bold;
             color: #d4d4d4;
+            font-size: 13px;
+            margin-bottom: 2px;
         """)
         label.setToolTip(entry.get('decorator', ''))
+        
+        # Add label (flush left)
+        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignLeft)
         
         # Create widget
         try:
             widget = WidgetFactory.create(entry, parent=self)
+            self.dynamic_widgets[entry['key']] = widget
             
             # :::
             # :::: NOTE: @espadonne (mfw)
-            # :::::     Check if this widget needs vertical layout
-            # :::::     (like color pickers with multiple elements)
+            # :::::     Determine alignment based on widget type
+            # :::::     Sliders: full width (they center themselves)
+            # :::::     Everything else: right-aligned
             # ::::
             ui_type = entry.get('ui_type', '')
-            needs_vertical = ui_type in ['color_picker', 'color_scheme', 'font_picker']
             
-            if needs_vertical:
-                # Use vertical layout for complex widgets
-                v_layout = QVBoxLayout()
-                v_layout.setSpacing(5)
-                v_layout.addWidget(label)
-                v_layout.addWidget(widget)
-                layout.addRow(v_layout)
+            if ui_type in ['slider', 'int_slider']:
+                # Sliders take full width - they handle centering internally
+                layout.addWidget(widget)
             else:
-                # Normal horizontal layout with better sizing
-                label.setMinimumWidth(100)
-                label.setMaximumWidth(120)
+                # Right-align everything else
+                widget_container = QWidget()
+                widget_layout = QHBoxLayout(widget_container)
+                widget_layout.setContentsMargins(0, 0, 0, 0)
+                widget_layout.addStretch()  # Push to right
+                widget_layout.addWidget(widget)
                 
-                if hasattr(widget, 'setMinimumWidth'):
-                    widget.setMinimumWidth(150)
-                if hasattr(widget, 'setMaximumWidth'):
-                    widget.setMaximumWidth(200)
+                # Set reasonable max widths
+                if ui_type in ['numerical', 'text']:
+                    if hasattr(widget, 'setMaximumWidth'):
+                        widget.setMaximumWidth(150)
+                elif ui_type in ['select', 'theme_select']:
+                    if hasattr(widget, 'setMaximumWidth'):
+                        widget.setMaximumWidth(180)
+                elif ui_type == 'color_picker':
+                    # Color picker needs a bit more room
+                    pass  # Let it size naturally
                 
-                layout.addRow(label, widget)
+                layout.addWidget(widget_container)
             
-            return widget
+            return frame
             
         except Exception as e:
             logger.error(f"Failed to create widget for {entry['key']}: {e}")
             error_label = QLabel(f"Error: {e}")
             error_label.setStyleSheet("color: #ff6b6b; font-size: 10px;")
-            layout.addRow(label, error_label)
-            return None
+            layout.addWidget(error_label)
+            return frame
     
     def _create_preview_area(self) -> QWidget:
         """Create the preview area widget"""
@@ -479,6 +499,7 @@ class Wezztershier(QMainWindow):
             button_layout.addWidget(debug_button)
             button_layout.addSpacing(10)
         
+        button_layout.addStretch()
         button_layout.addWidget(self.apply_button)
         button_layout.addStretch()
         
