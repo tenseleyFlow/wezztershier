@@ -156,19 +156,29 @@ class Wezztershier(QMainWindow):
         else:
             columns = min(5, columns)  # Cap at 5 columns max
         
-        # Calculate exact width needed for columns
-        widget_area_width = columns * WIDGET_COLUMN_WIDTH + 40  # columns + padding
-        total_width = widget_area_width + PREVIEW_MIN_WIDTH + 50  # add preview + splitter
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Calculate exact width to FIT all columns!
+        # :::::     No more cut-off columns
+        # ::::
+        widget_area_width = columns * WIDGET_COLUMN_WIDTH + (columns + 1) * 20  # columns + spacing
+        total_width = widget_area_width + PREVIEW_MIN_WIDTH + 100  # add preview + splitter + margins
         
-        # Don't exceed max but don't pad unnecessarily
+        # Don't exceed max but ensure we fit everything
         total_width = min(total_width, WINDOW_MAX_WIDTH)
         
         # :::
         # :::: NOTE: @espadonne (mfw)
-        # :::::     More height per widget now that labels are above
+        # :::::     Much more compact height calculation
+        # :::::     No more goofy tall windows!
+        # ::::
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Header + widgets height calculation
+        # :::::     MINIMAL header space - widgets get the rest!
         # ::::
         widgets_per_col = math.ceil(widget_count / columns)
-        height = 200 + (widgets_per_col * 80)  # More height for vertical layout
+        height = 60 + (widgets_per_col * 65)  # Minimal header allocation
         height = max(MIN_WINDOW_HEIGHT, min(height, MAX_WINDOW_HEIGHT))
         
         logger.debug(f"Layout calc: {widget_count} widgets -> {columns} cols, {total_width}x{height}")
@@ -198,7 +208,12 @@ class Wezztershier(QMainWindow):
         
         # Main layout
         main_layout = QVBoxLayout(central)
-        main_layout.setSpacing(10)
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Minimal spacing - widgets get the space!
+        # ::::
+        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
         # Add header
         self._add_header(main_layout)
@@ -224,7 +239,12 @@ class Wezztershier(QMainWindow):
         widget_area_width = num_columns * WIDGET_COLUMN_WIDTH + 50
         splitter.setSizes([widget_area_width, PREVIEW_MIN_WIDTH])
         
-        main_layout.addWidget(splitter)
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Splitter gets ALL the stretch!
+        # :::::     Header stays minimal
+        # ::::
+        main_layout.addWidget(splitter, 1)  # Give splitter all stretch
         
         # Set window size and lock it
         self.resize(window_width, window_height)
@@ -234,27 +254,53 @@ class Wezztershier(QMainWindow):
     
     def _add_header(self, layout: QVBoxLayout) -> None:
         """Add header section"""
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Compact header container
+        # ::::
+        header_widget = QWidget()
+        header_layout = QVBoxLayout(header_widget)
+        # :::
+        # :::: NOTE: @espadonne (mfw) 
+        # :::::     Tweak these for header height!
+        # :::::     (left, top, right, bottom)
+        # ::::
+        header_layout.setContentsMargins(10, 10, 10, 0)  # Reduced top margin
+        header_layout.setSpacing(1)  # Tighter spacing
+        
         header = QLabel("WezTerm Configuration Tuner")
         header.setStyleSheet("""
             font-size: 18px; 
             font-weight: bold; 
-            padding: 15px;
             color: #47B884;
         """)
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(header)
+        header.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        header_layout.addWidget(header)
         
         if self.debug_mode:
             debug_label = QLabel(f"🐛 Debug Mode | {len(self.dynamic_entries)} widgets loaded")
-            debug_label.setStyleSheet("color: orange; font-style: italic; text-align: center;")
-            debug_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(debug_label)
+            debug_label.setStyleSheet("color: orange; font-style: italic; font-size: 11px;")
+            debug_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            header_layout.addWidget(debug_label)
         
-        # Separator
+        # Separator with minimal spacing
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
-        layout.addWidget(line)
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Tighter separator margins
+        # ::::
+        line.setStyleSheet("margin-top: 2px; margin-bottom: 2px;")
+        header_layout.addWidget(line)
+        
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Fixed height header - no growing!
+        # ::::
+        header_widget.setMaximumHeight(75)  # Lock header height
+        
+        layout.addWidget(header_widget)
     
     def _create_widget_area(self, num_columns: int) -> QWidget:
         """Create the widget area with proper columns"""
@@ -276,12 +322,16 @@ class Wezztershier(QMainWindow):
         
         # :::
         # :::: NOTE: @espadonne (mfw)
-        # :::::     Create a scroll area for the columns
-        # :::::     but don't let it stretch vertically
+        # :::::     Create a scroll area with MORE HEIGHT
+        # :::::     Let's use that vertical space!
         # ::::
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Give the scroll area more vertical space
+        scroll.setMinimumHeight(400)  # Ensure decent height
         
         scroll_widget = QWidget()
         columns_layout = QHBoxLayout(scroll_widget)
@@ -300,7 +350,11 @@ class Wezztershier(QMainWindow):
             col_widget = QWidget()
             col_widget.setFixedWidth(WIDGET_COLUMN_WIDTH)
             col_layout = QVBoxLayout(col_widget)
-            col_layout.setSpacing(10)
+            # :::
+            # :::: NOTE: @espadonne (mfw)
+            # :::::     More spacing to use vertical space!
+            # ::::
+            col_layout.setSpacing(15)  # Increased from 10
             columns.append((col_widget, col_layout))
             columns_layout.addWidget(col_widget)
         
@@ -326,9 +380,11 @@ class Wezztershier(QMainWindow):
             if widget_block:
                 col_layout.addWidget(widget_block)
         
-        # Add stretch to each column to push widgets up
-        for _, col_layout in columns:
-            col_layout.addStretch()
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     NO stretch at bottom - let widgets use the space!
+        # ::::
+        # Don't add stretch to columns anymore - use the space!
         
         # Connect change handlers
         WidgetBuilder.connect_change_handlers(
@@ -354,8 +410,8 @@ class Wezztershier(QMainWindow):
             QFrame {
                 border: 1px solid #333;
                 border-radius: 4px;
-                padding: 10px;
-                margin: 2px;
+                padding: 12px;
+                margin: 4px;
                 background-color: #2a2a2a;
             }
             QFrame:hover {
