@@ -2,20 +2,20 @@
 (noun) : gui from decoration  
 
 ## wezztershier decoration grammar
-\<decorator_line>  ::= "-- @ui:" <annotation>
-\<annotation>      ::= <ui_type> [ "(" <param_list> ")" ] { <trailing_param> }
-\<ui_type>         ::= <identifier>
-\<param_list>      ::= <param> { "," <param> }
-\<trailing_param>  ::= <identifier> "=" <value> [ "," ]
-\<param>           ::= <identifier> "=" <value>
-\<value>           ::= <number> | <string> | <identifier> | <boolean> | <list> | <dict>
-\<list>            ::= "[" [ <value> { "," <value> } ] "]"
-\<dict>            ::= "{" [ <pair> { "," <pair> } ] "}"
-\<pair>            ::= <identifier> ":" <value>
-\<boolean>         ::= "true" | "false"
-\<identifier>      ::= letter { letter | digit | "_" }
-\<number>          ::= digit { digit } [ "." digit { digit } ]
-\<string>          ::= "\"" { any character except unescaped "\"" } "\""
+\<decorator_line>  ::= "-- @ui:" <annotation>  
+\<annotation>      ::= <ui_type> [ "(" <param_list> ")" ] { <trailing_param> }  
+\<ui_type>         ::= <identifier>  
+\<param_list>      ::= <param> { "," <param> }  
+\<trailing_param>  ::= <identifier> "=" <value> [ "," ]  
+\<param>           ::= <identifier> "=" <value>  
+\<value>           ::= <number> | <string> | <identifier> | <boolean> | <list> | <dict>  
+\<list>            ::= "[" [ <value> { "," <value> } ] "]"  
+\<dict>            ::= "{" [ <pair> { "," <pair> } ] "}"  
+\<pair>            ::= <identifier> ":" <value>  
+\<boolean>         ::= "true" | "false"  
+\<identifier>      ::= letter { letter | digit | "_" }  
+\<number>          ::= digit { digit } [ "." digit { digit } ]  
+\<string>          ::= "\"" { any character except unescaped "\"" } "\""  
 
 ### what is this?
 This is a language for generating gui's from decorations added to wezterm config. 
