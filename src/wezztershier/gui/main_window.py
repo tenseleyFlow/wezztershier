@@ -35,12 +35,12 @@ logger = logging.getLogger(__name__)
 #
 # Adjust these to taste. Like seasoning, but for GUIs.
 # ::::
-WIDGET_COLUMN_WIDTH = 280      # Width per widget column
+WIDGET_COLUMN_WIDTH = 320      # Wider columns for roomier widgets
 WINDOW_BASE_WIDTH = 1000       # Minimum window width
 WINDOW_MAX_WIDTH = 2400        # Maximum for even high-res monitors
 PREVIEW_MIN_WIDTH = 500        # Preview pane minimum width
-MAX_WIDGETS_PER_COLUMN = 10    # Before creating new column
-MIN_WINDOW_HEIGHT = 600        # Minimum height
+MAX_WIDGETS_PER_COLUMN = 8     # Fewer widgets per column for more space
+MIN_WINDOW_HEIGHT = 700        # Minimum height
 MAX_WINDOW_HEIGHT = 1200       # Maximum height
 
 
@@ -145,13 +145,17 @@ class Wezztershier(QMainWindow):
         # :::::     For better visual balance, prefer fewer
         # :::::     columns with more widgets per column
         # ::::
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Wider columns for roomier widgets
+        # ::::
         if widget_count <= 8:
             columns = 1
-        elif widget_count <= 16:
+        elif widget_count <= 14:  # Reduced threshold
             columns = 2
-        elif widget_count <= 24:
+        elif widget_count <= 21:  # Reduced threshold
             columns = 3
-        elif widget_count <= 32:
+        elif widget_count <= 28:  # Reduced threshold
             columns = 4
         else:
             columns = min(5, columns)  # Cap at 5 columns max
@@ -175,10 +179,10 @@ class Wezztershier(QMainWindow):
         # :::
         # :::: NOTE: @espadonne (mfw)
         # :::::     Header + widgets height calculation
-        # :::::     MINIMAL header space - widgets get the rest!
+        # :::::     More height per widget for breathing room
         # ::::
         widgets_per_col = math.ceil(widget_count / columns)
-        height = 60 + (widgets_per_col * 65)  # Minimal header allocation
+        height = 60 + (widgets_per_col * 85)  # More height per widget
         height = max(MIN_WINDOW_HEIGHT, min(height, MAX_WINDOW_HEIGHT))
         
         logger.debug(f"Layout calc: {widget_count} widgets -> {columns} cols, {total_width}x{height}")
@@ -213,7 +217,7 @@ class Wezztershier(QMainWindow):
         # :::::     Minimal spacing - widgets get the space!
         # ::::
         main_layout.setSpacing(5)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         
         # Add header
         self._add_header(main_layout)
@@ -265,10 +269,10 @@ class Wezztershier(QMainWindow):
         # :::::     Tweak these for header height!
         # :::::     (left, top, right, bottom)
         # ::::
-        header_layout.setContentsMargins(10, 10, 10, 0)  # Reduced top margin
+        header_layout.setContentsMargins(10, 5, 10, 0)  # Reduced top margin
         header_layout.setSpacing(1)  # Tighter spacing
         
-        header = QLabel("WezTerm Configuration Tuner")
+        header = QLabel("Wezztershier")
         header.setStyleSheet("""
             font-size: 18px; 
             font-weight: bold; 
@@ -298,7 +302,7 @@ class Wezztershier(QMainWindow):
         # :::: NOTE: @espadonne (mfw)
         # :::::     Fixed height header - no growing!
         # ::::
-        header_widget.setMaximumHeight(75)  # Lock header height
+        header_widget.setMaximumHeight(50)  # Lock header height
         
         layout.addWidget(header_widget)
     
@@ -409,9 +413,9 @@ class Wezztershier(QMainWindow):
         frame.setStyleSheet("""
             QFrame {
                 border: 1px solid #333;
-                border-radius: 4px;
-                padding: 12px;
-                margin: 4px;
+                border-radius: 6px;
+                padding: 0px;
+                margin: 6px;
                 background-color: #2a2a2a;
             }
             QFrame:hover {
@@ -422,11 +426,12 @@ class Wezztershier(QMainWindow):
         
         # :::
         # :::: NOTE: @espadonne (mfw)
-        # :::::     Vertical layout for label above widget
+        # :::::     Vertical layout with controlled spacing
+        # :::::     No stretch to prevent widget expansion
         # ::::
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(15, 12, 15, 4)
+        layout.setSpacing(12)
         
         # Create label - prettier formatting
         key_parts = entry['key'].split('.')
@@ -466,8 +471,13 @@ class Wezztershier(QMainWindow):
                 # Sliders take full width - they handle centering internally
                 layout.addWidget(widget)
             else:
-                # Right-align everything else
+                # :::
+                # :::: NOTE: @espadonne (mfw)
+                # :::::     Create properly sized container
+                # :::::     Prevent weird stretching!
+                # ::::
                 widget_container = QWidget()
+                widget_container.setMaximumHeight(40)  # Prevent vertical stretching
                 widget_layout = QHBoxLayout(widget_container)
                 widget_layout.setContentsMargins(0, 0, 0, 0)
                 widget_layout.addStretch()  # Push to right
@@ -477,14 +487,23 @@ class Wezztershier(QMainWindow):
                 if ui_type in ['numerical', 'text']:
                     if hasattr(widget, 'setMaximumWidth'):
                         widget.setMaximumWidth(150)
+                        widget.setMaximumHeight(35)
                 elif ui_type in ['select', 'theme_select']:
                     if hasattr(widget, 'setMaximumWidth'):
                         widget.setMaximumWidth(180)
+                        widget.setMaximumHeight(35)
                 elif ui_type == 'color_picker':
-                    # Color picker needs a bit more room
-                    pass  # Let it size naturally
+                    # Color picker needs specific sizing
+                    if hasattr(widget, 'setMaximumHeight'):
+                        widget.setMaximumHeight(35)
                 
                 layout.addWidget(widget_container)
+            
+            # :::
+            # :::: NOTE: @espadonne (mfw)
+            # :::::     Add stretch at bottom to keep widgets compact
+            # ::::
+            layout.addStretch()
             
             return frame
             
