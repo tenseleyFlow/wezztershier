@@ -73,7 +73,6 @@ class FloatSlider(NumericWezzWidget):
             """Setup the custom slider UI"""
             layout = QHBoxLayout(self)
             layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(5)
             
             # Create the actual slider widget
             self._slider_widget = _FloatSliderWidget(
@@ -86,23 +85,10 @@ class FloatSlider(NumericWezzWidget):
             
             # :::
             # :::: NOTE: @espadonne (mfw)
-            # :::::     Simple value label - no background, just the number
-            # :::::     Right-aligned to give slider more room
+            # :::::     No more label! Slider only.
+            # :::::     Tooltip shows value on hover/click
             # ::::
-            self._value_label = QLabel()
-            self._value_label.setMinimumWidth(40)
-            self._value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self._value_label.setStyleSheet("""
-                QLabel {
-                    color: #d4d4d4;
-                    font-family: monospace;
-                    font-size: 12px;
-                }
-            """)
-            self._update_label()
-            
-            layout.addWidget(self._slider_widget, 1)  # Slider gets stretch
-            layout.addWidget(self._value_label, 0)   # Label stays fixed
+            layout.addWidget(self._slider_widget)
             
             # Connect signals
             self._slider_widget.value_changed.connect(self._on_value_changed)
@@ -110,17 +96,9 @@ class FloatSlider(NumericWezzWidget):
     def _on_value_changed(self, value: float) -> None:
         """Handle internal value changes"""
         self._value = value
-        self._update_label()
         self._emit_value_changed()
         self.float_value_changed.emit(value)
-    
-    def _update_label(self) -> None:
-        """Update the value label"""
-        if self.is_float:
-            text = f"{self._value:.{self.precision}f}"
-        else:
-            text = str(int(self._value))
-        self._value_label.setText(text)
+
     
     def get_value(self) -> Union[float, int]:
         """Get current value"""
@@ -130,7 +108,6 @@ class FloatSlider(NumericWezzWidget):
         """Set current value"""
         self._value = float(value)
         self._slider_widget.set_value(self._value)
-        self._update_label()
 
 
 # :::
@@ -168,7 +145,11 @@ class _FloatSliderWidget(QWidget):
         
         # Visual constants - because design matters
         self.setMinimumHeight(24)
-        self.setMinimumWidth(200)
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Wider default to use available space
+        # ::::
+        self.setMinimumWidth(180)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setMouseTracking(True)
     
@@ -229,11 +210,17 @@ class _FloatSliderWidget(QWidget):
     
     def _get_track_rect(self) -> QRectF:
         """Get the track rectangle"""
-        margin = 10
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     No margin on right side - slider uses full width
+        # :::::     Only left margin for clean look
+        # ::::
+        margin_left = 10
+        margin_right = 0
         height = 4
         y = (self.height() - height) / 2
         
-        return QRectF(margin, y, self.width() - 2 * margin, height)
+        return QRectF(margin_left, y, self.width() - margin_left - margin_right, height)
     
     def _get_handle_rect(self) -> QRectF:
         """Get the handle rectangle"""
@@ -279,8 +266,12 @@ class _FloatSliderWidget(QWidget):
         painter.setPen(QPen(fill_color, 2))
         painter.drawEllipse(handle_rect)
         
-        # Draw value text on hover - because tooltips are so 2010
-        if self._hover:
+        # :::
+        # :::: NOTE: @espadonne (mfw)
+        # :::::     Draw value tooltip BELOW slider
+        # :::::     Shows on hover OR when pressed!
+        # ::::
+        if self._hover or self._pressed:
             painter.setPen(QColor(200, 200, 200))
             painter.setFont(QFont("Courier", 9))
             
@@ -289,7 +280,25 @@ class _FloatSliderWidget(QWidget):
             else:
                 text = f"{self._value:.{self.precision}f}"
             
-            text_rect = QRectF(handle_rect.x() - 20, handle_rect.y() - 20, 40, 15)
+            # :::
+            # :::: NOTE: @espadonne (mfw)
+            # :::::     Position BELOW the handle
+            # :::::     No more cutoff at top!
+            # ::::
+            text_rect = QRectF(
+                handle_rect.x() - 30,  # Center over handle
+                handle_rect.bottom() + 5,  # Below the handle with small gap
+                60,  # Width
+                15   # Height
+            )
+            
+            # Draw background for better readability
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(40, 40, 40, 200))
+            painter.drawRoundedRect(text_rect, 3, 3)
+            
+            # Draw text
+            painter.setPen(QColor(220, 220, 220))
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, text)
     
     # :::
